@@ -33,12 +33,23 @@ class Project {
 
   // Proj to Project (프로바이더 모델로 변환)
   static Project fromProj(Proj proj) {
+    // JSON 문자열에서 맵을 생성
+    var monitoringItemsRaw = jsonDecode(proj.monitoringItems) as Map<String, dynamic>;
+
+    // 각 요소를 bool 타입으로 강제 변환, 기본값은 false
+    var monitoringItems = monitoringItemsRaw.map((key, value) {
+      if (value is bool) {
+        return MapEntry(key, value);
+      } else {
+        return MapEntry(key, false); // 기본값으로 false 제공
+      }
+    });
     return Project(
       id: proj.id,
       name: proj.name,
       imageUrl: proj.imageUrl,
       creationDate: DateTime.parse(proj.date), // 문자열에서 DateTime으로 변환
-      monitoringItems: jsonDecode(proj.monitoringItems), // JSON에서 Map으로 변환
+      monitoringItems: monitoringItems, // JSON에서 Map으로 변환
       measurements: jsonDecode(proj.measurements), // JSON에서 Map으로 변환
     );
   }
@@ -56,7 +67,9 @@ class ProjectData extends ChangeNotifier {
   List<Project> get projects => _projects; // Proj 대신 Project 반환
 
   Future<void> _loadProjects() async {
+    print("Initializing database..."); // 데이터베이스 초기화 로깅
     var projs = await databaseHelper.getProjs(); // 데이터베이스에서 가져오기
+    print("Projects loaded: ${projs.length}");
     _projects = projs.map((proj) => Project.fromProj(proj)).toList(); // Project로 변환
     notifyListeners(); // 데이터 변경 알림
   }
@@ -67,6 +80,7 @@ class ProjectData extends ChangeNotifier {
     project.id = id; // 생성된 ID 설정
     _projects.add(project); // 프로바이더 상태 업데이트
     notifyListeners(); // 데이터 변경 알림
+    print("Project added with ID: $id"); // 추가된 프로젝트 로깅
   }
 
   Future<void> editProject(int index, Project updatedProject) async {
